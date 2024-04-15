@@ -164,7 +164,7 @@ func TestRenderer(t *testing.T) {
 		`2<b empty="">3</b><i backslash="\">&amp;4</i></p>` +
 		`5<blockquote></blockquote><br/>6<!--comm--><!--x--&gt;y-->7<pre>8</pre>9</body></html>`
 	b := new(bytes.Buffer)
-	if err := Render(b, nodes[0]); err != nil {
+	if err := Render(b, nodes[0], func(*Node) {}); err != nil {
 		t.Fatal(err)
 	}
 	if got := b.String(); got != want {
@@ -190,7 +190,7 @@ func TestRenderTextNodes(t *testing.T) {
 				t.Fatal(err)
 			}
 			b := bytes.NewBuffer(nil)
-			if err := Render(b, n); err != nil {
+			if err := Render(b, n, func(*Node) {}); err != nil {
 				t.Fatal(err)
 			}
 

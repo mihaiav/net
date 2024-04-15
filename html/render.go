@@ -42,12 +42,12 @@ type writer interface {
 // text node would become a tree containing <html>, <head> and <body> elements.
 // Another example is that the programmatic equivalent of "a<head>b</head>c"
 // becomes "<html><head><head/><body>abc</body></html>".
-func Render(w io.Writer, n *Node) error {
+func Render(w io.Writer, n *Node, customElementRenderer func(*Node)) error {
 	if x, ok := w.(writer); ok {
-		return render(x, n)
+		return render(x, n, customElementRenderer)
 	}
 	buf := bufio.NewWriter(w)
-	if err := render(buf, n); err != nil {
+	if err := render(buf, n, customElementRenderer); err != nil {
 		return err
 	}
 	return buf.Flush()
@@ -57,15 +57,15 @@ func Render(w io.Writer, n *Node) error {
 // has been rendered. No more end tags should be rendered after that.
 var plaintextAbort = errors.New("html: internal error (plaintext abort)")
 
-func render(w writer, n *Node) error {
-	err := render1(w, n)
+func render(w writer, n *Node, customElementRenderer func(*Node)) error {
+	err := render1(w, n, customElementRenderer)
 	if err == plaintextAbort {
 		err = nil
 	}
 	return err
 }
 
-func render1(w writer, n *Node) error {
+func render1(w writer, n *Node, customElementRenderer func(*Node)) error {
 	// Render non-element nodes; these are the easy cases.
 	switch n.Type {
 	case ErrorNode:
@@ -74,12 +74,13 @@ func render1(w writer, n *Node) error {
 		return escape(w, n.Data)
 	case DocumentNode:
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			if err := render1(w, c); err != nil {
+			if err := render1(w, c, customElementRenderer); err != nil {
 				return err
 			}
 		}
 		return nil
 	case ElementNode:
+		customElementRenderer(n)
 		// No-op.
 	case CommentNode:
 		if _, err := w.WriteString("<!--"); err != nil {
@@ -202,7 +203,7 @@ func render1(w writer, n *Node) error {
 					return err
 				}
 			} else {
-				if err := render1(w, c); err != nil {
+				if err := render1(w, c, customElementRenderer); err != nil {
 					return err
 				}
 			}
@@ -214,7 +215,7 @@ func render1(w writer, n *Node) error {
 		}
 	} else {
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			if err := render1(w, c); err != nil {
+			if err := render1(w, c, customElementRenderer); err != nil {
 				return err
 			}
 		}

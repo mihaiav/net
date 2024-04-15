@@ -365,7 +365,7 @@ func testParseCase(text, want, context string, opts ...ParseOption) (err error) 
 	// Check that rendering and re-parsing results in an identical tree.
 	pr, pw := io.Pipe()
 	go func() {
-		pw.CloseWithError(Render(pw, doc))
+		pw.CloseWithError(Render(pw, doc, func(*Node) {}))
 	}()
 	doc1, err := ParseWithOptions(pr, opts...)
 	if err != nil {
